@@ -1,0 +1,8 @@
+site_name: QP Utils Documentation
+
+theme:
+  name: readthedocs
+
+plugins:
+- search
+- mkdocstrings

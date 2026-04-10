@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qputils"
+version = "0.0.1"
+authors = [
+  { name="Jiří Gallo", email="jiri.gallo@centrum.cz" },
+]
+description = "Utilities for Quadratic Programming"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/galloj/qputils"
+Issues = "https://github.com/galloj/qputils/issues"
