@@ -1,1 +1,1 @@
-::: qp_utils.qp_dense
+::: qputils.qp_dense

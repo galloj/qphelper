@@ -1,1 +1,1 @@
-::: qp_utils.qp_ocp
+::: qputils.qp_ocp
