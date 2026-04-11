@@ -24,3 +24,4 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/galloj/qputils"
 Issues = "https://github.com/galloj/qputils/issues"
+Documentation = "https://qputils.readthedocs.io/en/latest/"

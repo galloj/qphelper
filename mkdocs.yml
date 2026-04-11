@@ -23,3 +23,5 @@ nav:
   - Home: index.md
   - QP: qp.md
   - OCP QP: ocp.md
+
+repo_url: https://github.com/galloj/qputils
