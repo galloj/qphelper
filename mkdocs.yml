@@ -6,3 +6,20 @@ theme:
 plugins:
 - search
 - mkdocstrings
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.snippets
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js
+  - javascript/config.js
+
+extra_css:
+  - css/style.css
+
+nav:
+  - Home: index.md
+  - QP: dense.md
+  - OCP QP: ocp.md
