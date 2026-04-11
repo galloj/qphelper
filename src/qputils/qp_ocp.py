@@ -1,4 +1,4 @@
-from .qp_dense import QPDense
+from .qp import QP
 import numpy as np
 
 class QPOCP:
@@ -68,7 +68,7 @@ class QPOCP:
         return self.Q.shape[1]
 
 
-    def to_sparse(self) -> QPDense:
+    def to_sparse(self) -> QP:
         N = self.get_horizon()
         nX = self.get_states_count()
         nU = self.get_controls_count()
@@ -85,9 +85,9 @@ class QPOCP:
             np.stack([An, Bn, np.ones((nX,))])
         q = np.array(zip(self.r, self.q)).flatten()
         # TODO
-        return QPDense(H, q)
+        return QP(H, q)
 
-    def to_dense(self) -> QPDense:
+    def to_dense(self) -> QP:
         return self.condense(1).to_sparse()
 
     def condense(self, N: int) -> "QPOCP":

@@ -1,1 +1,0 @@
-::: qputils.qp_dense

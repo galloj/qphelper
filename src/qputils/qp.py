@@ -1,7 +1,7 @@
 import numpy
 from typing import Optional
 
-class QPDense:
+class QP:
     r"""
     Class for standard form QP problems.
 
@@ -159,7 +159,7 @@ class QPDense:
     def calculate_duality_gap(self, x: numpy.ndarray, ybA: Optional[numpy.ndarray] = None, yb: Optional[numpy.ndarray] = None, yD: Optional[numpy.ndarray] = None) -> float:
         return self.evaluate_primal(x) - self.evaluate_dual(x, ybA, yb, yD)
 
-    def to_identity_hessian(self) -> "QPDense":
+    def to_identity_hessian(self) -> "QP":
         """
         Converts the problem to one, which has identity Hessian.
         Requires that the Hessian is positive definite.
@@ -167,7 +167,7 @@ class QPDense:
         qp = self.to_without_bounds()
         raise NotImplementedError("TODO")
 
-    def to_without_bounds(self) -> "QPDense":
+    def to_without_bounds(self) -> "QP":
         """
         Converts QP into QP with variable bounds transformed into general constraints.
         This transformation does not alter primal objective function.
@@ -183,9 +183,9 @@ class QPDense:
             newubA = numpy.append(newubA, ubn)
             new_constaint = numpy.concatenate([numpy.zeros(i), numpy.ones(1), numpy.zeros(self.get_variables_count()-i-1)])
             newA = numpy.concatenate([newA, numpy.array([new_constaint])], 0)
-        return QPDense(self.H, self.q, newA, newlbA, newubA, None, None, self.C, self.d)
+        return QP(self.H, self.q, newA, newlbA, newubA, None, None, self.C, self.d)
     
-    def to_without_general_lower_bounds(self) -> "QPDense":
+    def to_without_general_lower_bounds(self) -> "QP":
         """
         Converts QP into QP with lower general bounds transformed into upper general constraints.
         This transformation does not alter primal objective function.
@@ -197,9 +197,9 @@ class QPDense:
                 continue
             newubA = numpy.append(newubA, -lbAn)
             newA = numpy.concatenate([newA, numpy.array([-An])], 0)
-        return QPDense(self.H, self.q, newA, None, newubA, self.lb, self.ub, self.C, self.d)
+        return QP(self.H, self.q, newA, None, newubA, self.lb, self.ub, self.C, self.d)
 
-    def to_without_general_constraints(self) -> "QPDense":
+    def to_without_general_constraints(self) -> "QP":
         """
         Converts the problem to one, which has empty A matrix.
         """

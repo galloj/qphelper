@@ -1,2 +1,2 @@
-from .qp_dense import QPDense
+from .qp import QP
 from .qp_ocp import QPOCP

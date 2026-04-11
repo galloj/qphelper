@@ -21,5 +21,5 @@ extra_css:
 
 nav:
   - Home: index.md
-  - QP: dense.md
+  - QP: qp.md
   - OCP QP: ocp.md
