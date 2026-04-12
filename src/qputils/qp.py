@@ -106,9 +106,9 @@ class QP:
             yD = numpy.zeros((self.get_equalities_count(),))
         result = 0.5 * (x.T.dot(self.H).dot(x))
         result += (-ybA * self.lbA)[(self.lbA != -numpy.inf) & (ybA < 0)].sum()
-        result += (ybA * self.ubA)[(self.ubA != -numpy.inf) & (ybA > 0)].sum()
+        result += (ybA * self.ubA)[(self.ubA != numpy.inf) & (ybA > 0)].sum()
         result += (-yb * self.lb)[(self.lb != -numpy.inf) & (yb < 0)].sum()
-        result += (yb * self.ub)[(self.ub != -numpy.inf) & (yb > 0)].sum()
+        result += (yb * self.ub)[(self.ub != numpy.inf) & (yb > 0)].sum()
         result += (yD * self.d).sum()
         return -float(result)
     
@@ -127,7 +127,27 @@ class QP:
             yb = numpy.zeros((self.get_variables_count(),))
         if yD is None:
             yD = numpy.zeros((self.get_equalities_count(),))
-        raise NotImplementedError("TODO")
+        A = numpy.concatenate([self.H, self.C])
+        b = numpy.concatenate([-(self.A.T.dot(ybA) + yb + self.C.T.dot(yD) + self.q), self.d])
+        eps = 0.0001
+        for ybAn, An, lbAn, ubAn in zip(ybA, self.A, self.lbA, self.ubA):
+            if abs(ybAn) > eps:
+                A = numpy.append(A, numpy.array([An]), 0)
+                if ybAn < 0:
+                    b = numpy.append(b, [lbAn])
+                else:
+                    b = numpy.append(b, [ubAn])
+        for i, (ybn, lbn, ubn) in enumerate(zip(yb, self.lb, self.ub)):
+            if abs(ybn) > eps:
+                new_constr = numpy.zeros(self.get_variables_count())
+                new_constr[i] = 1.0
+                A = numpy.append(A, numpy.array([new_constr]), 0)
+                if ybn < 0:
+                    b = numpy.append(b, [lbn])
+                else:
+                    b = numpy.append(b, [ubn])
+        primal, _, _, _ = numpy.linalg.lstsq(A, b)
+        return primal
 
     def calculate_dual(self, x: numpy.ndarray):
         """
@@ -136,7 +156,30 @@ class QP:
         Parameters:
             x: nV - primal solution
         """
-        raise NotImplementedError("TODO")
+        A = numpy.concatenate([self.A.T, numpy.identity(self.get_variables_count()), self.C.T], 1)
+        b = -(self.H.dot(x) + self.q)
+        dual_length = self.get_inequalities_count() + self.get_variables_count() + self.get_equalities_count()
+        eps = 0.0001
+        for i, (An, lbn, ubn) in enumerate(zip(self.A, self.lbA, self.ubA)):
+            if not(An.T.dot(x) <= lbn + eps or An.T.dot(x) >= ubn - eps):
+                new_constr = numpy.zeros(dual_length)
+                new_constr[i] = 1.0
+                A = numpy.append(A, numpy.array([new_constr]), 0)
+                b = numpy.append(b, numpy.zeros(1))
+        for i, (xn, lbn, ubn) in enumerate(zip(x, self.lb, self.ub)):
+            if not(xn <= lbn + eps or xn >= ubn - eps):
+                new_constr = numpy.zeros(dual_length)
+                new_constr[self.get_inequalities_count()+i] = 1.0
+                A = numpy.append(A, numpy.array([new_constr]), 0)
+                b = numpy.append(b, numpy.zeros(1))
+        dual, _, _, _ = numpy.linalg.lstsq(A, b)
+        offset = 0
+        ybA = dual[offset:offset+self.get_inequalities_count()]
+        offset += self.get_inequalities_count()
+        yb = dual[offset:offset+self.get_variables_count()]
+        offset += self.get_variables_count()
+        yD = dual[offset:]
+        return (ybA, yb, yD)
 
     def calculate_primal_residual(self, x: numpy.ndarray)-> numpy.ndarray:
         result = 0
@@ -159,13 +202,21 @@ class QP:
     def calculate_duality_gap(self, x: numpy.ndarray, ybA: Optional[numpy.ndarray] = None, yb: Optional[numpy.ndarray] = None, yD: Optional[numpy.ndarray] = None) -> float:
         return self.evaluate_primal(x) - self.evaluate_dual(x, ybA, yb, yD)
 
-    def to_identity_hessian(self) -> "QP":
+    def to_identity_hessian(self) -> tuple["QP", numpy.ndarray]:
         """
         Converts the problem to one, which has identity Hessian.
         Requires that the Hessian is positive definite.
         """
         qp = self.to_without_bounds()
-        raise NotImplementedError("TODO")
+        H_tr = numpy.linalg.cholesky(qp.H)
+        H_tr_inv = numpy.linalg.inv(H_tr)
+        # v^T = x^T H_tr
+        # x^T = v^T H_tr_inv
+        # x = H_tr_inv^T v
+        q_new = qp.q.dot(H_tr_inv)
+        A_new = qp.A.dot(H_tr_inv.T)
+        C_new = qp.C.dot(H_tr_inv.T)
+        return (QP(numpy.identity(qp.get_variables_count()), q_new, A_new, qp.lbA, qp.ubA, None, None, C_new, qp.d), H_tr_inv)
 
     def to_without_bounds(self) -> "QP":
         """
