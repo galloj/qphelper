@@ -24,11 +24,11 @@ class QPOCP:
     \]
 
     Parameters:
-        R: N x nU x nU
         Q: N x nX x nX
+        R: N x nU x nU
         S: N x nU x nX
-        r: N x nU
         q: N x nX
+        r: N x nU
         A: (N-1) x nX x nX
         B: (N-1) x nX x nU
         b: (N-1) x nX
@@ -41,13 +41,13 @@ class QPOCP:
         lg: N x nC
         ug: N x nC
     """
-    def __init__(self, R: list[np.ndarray], Q: list[np.ndarray], S: list[np.ndarray], r: list[np.ndarray], q: list[np.ndarray], A: list[np.ndarray], B: list[np.ndarray], b: list[np.ndarray], lbu: list[np.ndarray], ubu: list[np.ndarray], lbx: list[np.ndarray], ubx: list[np.ndarray], C: list[np.ndarray], D: list[np.ndarray], lg: list[np.ndarray], ug: list[np.ndarray]):
-        N = len(R)
-        assert len(R) == N
+    def __init__(self, Q: list[np.ndarray], R: list[np.ndarray], S: list[np.ndarray], q: list[np.ndarray], r: list[np.ndarray], A: list[np.ndarray], B: list[np.ndarray], b: list[np.ndarray], lbu: list[np.ndarray], ubu: list[np.ndarray], lbx: list[np.ndarray], ubx: list[np.ndarray], C: list[np.ndarray], D: list[np.ndarray], lg: list[np.ndarray], ug: list[np.ndarray]):
+        N = len(Q)
         assert len(Q) == N
+        assert len(R) == N
         assert len(S) == N
-        assert len(r) == N
         assert len(q) == N
+        assert len(r) == N
         assert len(A) == N-1
         assert len(B) == N-1
         assert len(b) == N-1
@@ -59,15 +59,15 @@ class QPOCP:
         assert len(D) == N
         assert len(lg) == N
         assert len(ug) == N
-        for Rt, Qt, St, rt, qt, lbut, ubut, lbxt, ubxt, Ct, Dt, lgt, ugt in zip(R, Q, S, r, q, lbu, ubu, lbx, ubx, C, D, lg, ug):
+        for Qt, Rt, St, rt, qt, lbut, ubut, lbxt, ubxt, Ct, Dt, lgt, ugt in zip(Q, R, S, r, q, lbu, ubu, lbx, ubx, C, D, lg, ug):
             nU = Rt.shape[0]
             nX = Qt.shape[0]
             nC = Ct.shape[0]
-            assert Rt.shape == (nU, nU)
             assert Qt.shape == (nX, nX)
+            assert Rt.shape == (nU, nU)
             assert St.shape == (nU, nX)
-            assert rt.shape == (nU,)
             assert qt.shape == (nX,)
+            assert rt.shape == (nU,)
             assert lbut.shape == (nU,)
             assert ubut.shape == (nU,)
             assert lbxt.shape == (nX,)
@@ -83,11 +83,11 @@ class QPOCP:
             assert At.shape == (nXt1, nXt0)
             assert Bt.shape == (nXt1, nUt0)
             assert bt.shape == (nXt1,)
-        self.R = R
         self.Q = Q
+        self.R = R
         self.S = S
-        self.r = r
         self.q = q
+        self.r = r
         self.A = A
         self.B = B
         self.b = b
@@ -104,7 +104,13 @@ class QPOCP:
         """
         Get number of stages/horizon length
         """
-        return len(self.R)
+        return len(self.Q)
+    
+    def get_states_count(self, stage_id: int) -> int:
+        """
+        Get number of state variables in a given stage
+        """
+        return self.Q[stage_id].shape[0]
     
     def get_controls_count(self, stage_id: int) -> int:
         """
@@ -112,22 +118,16 @@ class QPOCP:
         """
         return self.R[stage_id].shape[0]
 
-    def get_states_count(self, stage_id: int) -> int:
-        """
-        Get number of state variables in a given stage
-        """
-        return self.Q[stage_id].shape[0]
-
 
     def to_sparse(self) -> QP:
         """
         Transforms the OCP QP problem into QP problem with sparse formulation.
         """
         H_blocks = []
-        for Rn, Qn, Sn in zip(self.R, self.Q, self.S):
+        for Qn, Rn, Sn in zip(self.Q, self.R, self.S):
             H_blocks.append(np.block([
-                [Rn, Sn],
-                [Sn, Qn],
+                [Qn, Sn],
+                [Sn, Rn],
             ]))
         H_rows = []
         H_offset = 0
@@ -142,7 +142,7 @@ class QPOCP:
             nX = self.get_states_count(i+1)
             C = np.append(C, np.concatenate([An, Bn, -np.identity(nX)]))
         d = np.concatenate([-x for x in self.b])
-        q = np.array(zip(self.r, self.q)).flatten()
+        q = np.array(zip(self.q, self.r)).flatten()
         # TODO
         return QP(H, q, None, None, None, None, None, C, d)
     
@@ -185,7 +185,7 @@ class QPOCP:
         ubu_full = self.lbu[:id] + [ubu_new] + self.lbu[id+2:]
         lbx_full = self.lbx[:id+1] + self.lbx[id+1:]
         ubx_full = self.ubx[:id+1] + self.ubx[id+1:]
-        #return QPOCP(R_full, S_full, Q_full, ..., ..., A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full)
+        #return QPOCP(Q_full, R_full, S_full, ..., ..., A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full)
         raise NotImplementedError("TODO")
 
     def to_dense(self) -> QP:
