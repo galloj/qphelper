@@ -10,7 +10,7 @@ class QPOCP:
     \]
 
     \[
-    x_{t+1} = A_{t}x_{t} + B_{t}u_{t}
+    x_{t+1} = A_{t}x_{t} + B_{t}u_{t} + b_{t}
     \]
 
     \[
@@ -122,12 +122,15 @@ class QPOCP:
     def to_sparse(self) -> QP:
         """
         Transforms the OCP QP problem into QP problem with sparse formulation.
+
+        Returns:
+            The new QP.
         """
         H_blocks = []
         for Qn, Rn, Sn in zip(self.Q, self.R, self.S):
             H_blocks.append(np.block([
                 [Qn, Sn],
-                [Sn, Rn],
+                [Sn.T, Rn],
             ]))
         H_rows = []
         H_offset = 0
@@ -138,17 +141,30 @@ class QPOCP:
             H_offset += size
         H = np.concatenate(H_rows, 0)
         C = np.zeros((0, nV))
+        C_offset = 0
         for i, (An, Bn) in enumerate(zip(self.A, self.B)):
             nX = self.get_states_count(i+1)
-            C = np.append(C, np.concatenate([An, Bn, -np.identity(nX)]))
+            C = np.append(C, np.concatenate([np.zeros((An.shape[0], C_offset)), An, Bn, -np.identity(nX), np.zeros((An.shape[0], nV-C_offset-An.shape[1]-Bn.shape[1]-nX))], 1))
+            C_offset += self.get_states_count(i) +  self.get_controls_count(i)
         d = np.concatenate([-x for x in self.b])
         q = np.array(zip(self.q, self.r)).flatten()
-        # TODO
-        return QP(H, q, None, None, None, None, None, C, d)
+        A = np.zeros((0, nV))
+        A_offset = 0
+        for i, (Cn, Dn) in enumerate(zip(self.C, self.D)):
+            A = np.append(A, np.concatenate([np.zeros((Cn.shape[0], A_offset)), Cn, Dn, np.zeros((Cn.shape[0], nV-A_offset-Cn.shape[1]-Dn.shape[1]))], 1))
+            A_offset += Cn.shape[1] + Dn.shape[1]
+        lbA = np.concatenate(self.lg)
+        ubA = np.concatenate(self.ug)
+        lb = np.array(zip(self.lbx, self.lbu)).flatten()
+        ub = np.array(zip(self.ubx, self.ubu)).flatten()
+        return QP(H, q, A, lbA, ubA, lb, ub, C, d)
     
     def merge_stages(self, id: int) -> "QPOCP":
         """
         Creates new QPOCP with stages id and id+1 merged into one
+
+        Returns:
+            The new OCP QP with merged stages.
         """
         A = self.A[id]
         B = self.B[id]
@@ -169,8 +185,10 @@ class QPOCP:
         R_full = self.R[:id] + [R_new] +  self.R[id+2:]
         S_full = self.S[:id] + [S_new] + self.S[id+2:]
         if id + 1 < self.get_stages_count():
-            A_new = ...
-            B_new = np.concatenate([np.zeros(self.get_controls_count(id)), self.B[id+1]])
+            A1 = self.A[id+1]
+            B1 = self.B[id+1]
+            A_new = A.dot(A1)
+            B_new = np.concatenate([np.zeros(self.get_controls_count(id)), B1], 0)
             b_new = self.b[id+1]
             A_full = self.A[:id] + [A_new] + self.A[id+2:]
             B_full = self.B[:id] + [B_new] + self.B[id+2:]
@@ -185,18 +203,44 @@ class QPOCP:
         ubu_full = self.lbu[:id] + [ubu_new] + self.lbu[id+2:]
         lbx_full = self.lbx[:id+1] + self.lbx[id+1:]
         ubx_full = self.ubx[:id+1] + self.ubx[id+1:]
-        #return QPOCP(Q_full, R_full, S_full, ..., ..., A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full)
-        raise NotImplementedError("TODO")
+        # self.lbx[id+1] - b_t <= A_tx_t + B_tu_t <= self.ubx[id+1] - b_t
+        # -> is added by C and D matrices
+        q_new = self.q[id] + A.dot(self.q[id+1])
+        q_full = self.q[:id] + [q_new] + self.q[id+2:]
+        r_new = np.concatenate([self.r[id] + B*self.q[id+1] + b.dot(S1), self.r[id+1]])
+        r_full = self.r[:id] + [r_new] + self.r[id+2:]
+        C_new = np.concatenate([self.C[id], self.C[id+1].dot(A), A], 0)
+        C_full = self.C[:id] + [C_new] + self.C[id+2:]
+        D_new = np.block([
+            [self.D[id], np.zeros((self.D[id].shape[0], self.D[id+1].shape[1]))],
+            [self.C[id+1].dot(B), self.D[id+1]],
+            [B, np.zeros((B.shape[0], self.D[id+1].shape[1]))]
+        ])
+        D_full = self.D[:id] + [D_new] + self.D[id+2:]
+        lg_new = np.concatenate([self.lg[id], self.lg[id+1] - self.C[id+1].dot(b), self.lbx[id+1] - b])
+        lg_full = self.lg[:id] + [lg_new] + self.lg[id+2:]
+        ug_new = np.concatenate([self.ug[id], self.ug[id+1] - self.C[id+1].dot(b), self.ubx[id+1] - b])
+        ug_full = self.ug[:id] + [ug_new] + self.ug[id+2:]
+        return QPOCP(Q_full, R_full, S_full, q_full, r_full, A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full, C_full, D_full, lg_full, ug_full)
 
     def to_dense(self) -> QP:
         """
         Transforms the OCP QP problem into QP problem with dense formulation.
+
+        Returns:
+            The new dense QP.
         """
         return self.condense(1).to_sparse()
 
     def condense(self, N: int) -> "QPOCP":
-        """
+        r"""
         Transforms the OCP QP problem into new OCP QP problem, which has N stages.
+
+        The new optimization variables correspond to:
+        \( [ x_0 u_0 u_1 ... u_t ] \)
+
+        Returns:
+            The condensed OCP QP.
         """
         new_qp = self
         stages = self.get_stages_count()
