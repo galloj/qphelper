@@ -6,7 +6,7 @@ class QPOCP:
     Class for OCP QP problems
     
     \[
-    \min \sum_{t}^{N} \frac{1}{2}x^T_tQ_tx_t + \frac{1}{2}u^T_tR_tu_t + x^T_tS_tu_t + q^Tx_t + r^Tu_t
+    \min \sum_{t}^{N} \frac{1}{2}x^T_tQ_tx_t + \frac{1}{2}u^T_tR_tu_t + x^T_tS_tu_t + q_t^Tx_t + r_t^Tu_t
     \]
 
     \[
@@ -187,9 +187,9 @@ class QPOCP:
         if id + 1 < self.get_stages_count():
             A1 = self.A[id+1]
             B1 = self.B[id+1]
-            A_new = A.dot(A1)
-            B_new = np.concatenate([np.zeros(self.get_controls_count(id)), B1], 0)
-            b_new = self.b[id+1]
+            A_new = A1.dot(A)
+            B_new = np.concatenate([A1.dot(B), B1], 0)
+            b_new = A1.dot(b) + self.b[id+1]
             A_full = self.A[:id] + [A_new] + self.A[id+2:]
             B_full = self.B[:id] + [B_new] + self.B[id+2:]
             b_full = self.b[:id] + [b_new] + self.b[id+2:]

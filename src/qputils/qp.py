@@ -236,6 +236,10 @@ class QP:
 
     def calculate_duality_gap(self, x: numpy.ndarray, ybA: Optional[numpy.ndarray] = None, yb: Optional[numpy.ndarray] = None, yD: Optional[numpy.ndarray] = None) -> float:
         """
+        Calculates duality gap.
+
+        The duality gap is equal to difference between primal and dual objective function for the given input.
+
         Returns:
             The duality gap.
         """
