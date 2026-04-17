@@ -133,6 +133,23 @@ class QPOCP:
         """
         return self.R[stage_id].shape[0]
 
+    def get_next_state(self, x: np.ndarray, u: np.ndarray, stage: int = 0) -> np.ndarray:
+        r"""
+        Calculates next state from the current state and control variables.
+
+        \[
+        x_{t+1} = A_{t}x_{t} + B_{t}u_{t} + b_{t}
+        \]
+
+        Parameters:
+            x: state variables input (\(x_t\))
+            u: control variables input (\(u_t\))
+            stage: stage at which the variables have the given values (\(t\))
+
+        Returns:
+            The new state variables. (\(x_{t+1}\))
+        """
+        return self.A[stage].dot(x) + self.B[stage].dot(u) + self.b[stage]
 
     def to_sparse(self) -> QP:
         """
