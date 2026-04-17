@@ -1,5 +1,6 @@
 from .qp import QP
 import numpy as np
+from typing import Optional
 
 class QPOCP:
     r"""
@@ -41,20 +42,34 @@ class QPOCP:
         lg: N x nC
         ug: N x nC
     """
-    def __init__(self, Q: list[np.ndarray], R: list[np.ndarray], S: list[np.ndarray], q: list[np.ndarray], r: list[np.ndarray], A: list[np.ndarray], B: list[np.ndarray], b: list[np.ndarray], lbu: list[np.ndarray], ubu: list[np.ndarray], lbx: list[np.ndarray], ubx: list[np.ndarray], C: list[np.ndarray], D: list[np.ndarray], lg: list[np.ndarray], ug: list[np.ndarray]):
+    def __init__(self, Q: list[np.ndarray], R: list[np.ndarray], S: Optional[list[np.ndarray]], q: Optional[list[np.ndarray]], r: Optional[list[np.ndarray]], A: list[np.ndarray], B: list[np.ndarray], b: Optional[list[np.ndarray]], lbu: list[np.ndarray], ubu: list[np.ndarray], lbx: list[np.ndarray], ubx: list[np.ndarray], C: Optional[list[np.ndarray]], D: Optional[list[np.ndarray]], lg: Optional[list[np.ndarray]], ug: Optional[list[np.ndarray]]):
         N = len(Q)
         assert len(Q) == N
         assert len(R) == N
+        if S is None:
+            S = [np.zeros((Rn.shape[0], Qn.shape[0])) for Qn, Rn in zip(Q, R)]
         assert len(S) == N
+        if q is None:
+            q = [np.zeros(Qn.shape[0]) for Qn in Q]
         assert len(q) == N
+        if r is None:
+            r = [np.zeros(Rn.shape[0]) for Rn in R]
         assert len(r) == N
         assert len(A) == N-1
         assert len(B) == N-1
+        if b is None:
+            b = [np.zeros(Qn.shape[0]) for Qn in Q[1:]]
         assert len(b) == N-1
         assert len(lbu) == N
         assert len(ubu) == N
         assert len(lbx) == N
         assert len(ubx) == N
+        assert (C is None) == (D is None) == (lg is None) == (ug is None)
+        if C is None or D is None or lg is None or ug is None:
+            C = [np.zeros((0, Qn.shape[0])) for Qn in Q]
+            D = [np.zeros((0, Rn.shape[0])) for Rn in R]
+            lg = [np.zeros(0)] * N
+            ug = [np.zeros(0)] * N
         assert len(C) == N
         assert len(D) == N
         assert len(lg) == N

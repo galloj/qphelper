@@ -1,5 +1,5 @@
 import numpy
-from typing import Any, Optional
+from typing import Optional
 
 class QP:
     r"""
