@@ -3,7 +3,7 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "qputils"
+name = "qphelper"
 version = "0.0.1"
 authors = [
   { name="Jiří Gallo", email="jiri.gallo@centrum.cz" },
@@ -22,6 +22,6 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/galloj/qputils"
-Issues = "https://github.com/galloj/qputils/issues"
-Documentation = "https://qputils.readthedocs.io/en/latest/"
+Homepage = "https://github.com/galloj/qphelper"
+Issues = "https://github.com/galloj/qphelper/issues"
+Documentation = "https://qphelper.readthedocs.io/en/latest/"
