@@ -411,7 +411,7 @@ class QP:
             A new QP.
         """
         newA = self.A
-        newubA = numpy.zeros((0, self.get_variables_count()))
+        newubA = numpy.zeros(0)
         for ubAn, An in zip(self.ubA, self.A):
             if ubAn == numpy.inf:
                 continue

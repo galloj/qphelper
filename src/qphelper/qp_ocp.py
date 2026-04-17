@@ -91,7 +91,7 @@ class QPOCP:
             assert Dt.shape == (nC, nU)
             assert lgt.shape == (nC,)
             assert ugt.shape == (nC,)
-        for t, (At, Bt, bt) in enumerate(zip(self.A, self.B, self.b)):
+        for t, (At, Bt, bt) in enumerate(zip(A, B, b)):
             nXt0 = Q[t].shape[0]
             nXt1 = Q[t+1].shape[0]
             nUt0 = R[t].shape[0]
@@ -144,8 +144,8 @@ class QPOCP:
         H_blocks = []
         for Qn, Rn, Sn in zip(self.Q, self.R, self.S):
             H_blocks.append(np.block([
-                [Qn, Sn],
-                [Sn.T, Rn],
+                [Qn, Sn.T],
+                [Sn, Rn],
             ]))
         H_rows = []
         H_offset = 0
@@ -154,24 +154,36 @@ class QPOCP:
             size = H_block.shape[0] # H is square
             H_rows.append(np.concatenate([np.zeros((H_offset,size)), H_block, np.zeros((nV-H_offset-size, size))]))
             H_offset += size
-        H = np.concatenate(H_rows, 0)
+        H = np.concatenate(H_rows, 1)
         C = np.zeros((0, nV))
         C_offset = 0
         for i, (An, Bn) in enumerate(zip(self.A, self.B)):
             nX = self.get_states_count(i+1)
-            C = np.append(C, np.concatenate([np.zeros((An.shape[0], C_offset)), An, Bn, -np.identity(nX), np.zeros((An.shape[0], nV-C_offset-An.shape[1]-Bn.shape[1]-nX))], 1))
+            C = np.append(C, np.concatenate([np.zeros((An.shape[0], C_offset)), An, Bn, -np.identity(nX), np.zeros((An.shape[0], nV-C_offset-An.shape[1]-Bn.shape[1]-nX))], 1), 0)
             C_offset += self.get_states_count(i) +  self.get_controls_count(i)
         d = np.concatenate([-x for x in self.b])
-        q = np.array(zip(self.q, self.r)).flatten()
+        q_arr = []
+        for qn, rn in zip(self.q, self.r):
+            q_arr += list(qn)
+            q_arr += list(rn)
+        q = np.array(q_arr)
         A = np.zeros((0, nV))
         A_offset = 0
         for i, (Cn, Dn) in enumerate(zip(self.C, self.D)):
-            A = np.append(A, np.concatenate([np.zeros((Cn.shape[0], A_offset)), Cn, Dn, np.zeros((Cn.shape[0], nV-A_offset-Cn.shape[1]-Dn.shape[1]))], 1))
+            A = np.append(A, np.concatenate([np.zeros((Cn.shape[0], A_offset)), Cn, Dn, np.zeros((Cn.shape[0], nV-A_offset-Cn.shape[1]-Dn.shape[1]))], 1), 0)
             A_offset += Cn.shape[1] + Dn.shape[1]
         lbA = np.concatenate(self.lg)
         ubA = np.concatenate(self.ug)
-        lb = np.array(zip(self.lbx, self.lbu)).flatten()
-        ub = np.array(zip(self.ubx, self.ubu)).flatten()
+        lb_arr = []
+        for lbxn, lbun in zip(self.lbx, self.lbu):
+            lb_arr += list(lbxn)
+            lb_arr += list(lbun)
+        ub_arr = []
+        for ubxn, ubun in zip(self.ubx, self.ubu):
+            ub_arr += list(ubxn)
+            ub_arr += list(ubun)
+        lb = np.array(lb_arr)
+        ub = np.array(ub_arr)
         return QP(H, q, A, lbA, ubA, lb, ub, C, d)
     
     def merge_stages(self, id: int) -> "QPOCP":
@@ -193,7 +205,7 @@ class QPOCP:
         Q_new = Q0 + A.dot(Q1).dot(A)
         R_new = np.block([
             [R0 + B.dot(Q1).dot(B), B.dot(S1)],
-            [S1.T.dot(B), R1],
+            [S1.T.dot(B.T), R1],
         ])
         S_new = np.concatenate([S0 + A.dot(Q1).dot(B), A.dot(S1)])
         Q_full = self.Q[:id] + [Q_new] + self.Q[id+2:]
