@@ -85,12 +85,15 @@ class QPOCP:
             assert rt.shape == (nU,)
             assert lbut.shape == (nU,)
             assert ubut.shape == (nU,)
+            assert (lbut <= ubut).all()
             assert lbxt.shape == (nX,)
             assert ubxt.shape == (nX,)
+            assert (lbxt <= ubxt).all()
             assert Ct.shape == (nC, nX)
             assert Dt.shape == (nC, nU)
             assert lgt.shape == (nC,)
             assert ugt.shape == (nC,)
+            assert (lgt <= ugt).all()
         for t, (At, Bt, bt) in enumerate(zip(A, B, b)):
             nXt0 = Q[t].shape[0]
             nXt1 = Q[t+1].shape[0]
@@ -178,7 +181,10 @@ class QPOCP:
             nX = self.get_states_count(i+1)
             C = np.append(C, np.concatenate([np.zeros((An.shape[0], C_offset)), An, Bn, -np.identity(nX), np.zeros((An.shape[0], nV-C_offset-An.shape[1]-Bn.shape[1]-nX))], 1), 0)
             C_offset += self.get_states_count(i) +  self.get_controls_count(i)
-        d = np.concatenate([-x for x in self.b])
+        if len(self.b) == 0:
+            d = np.zeros(0)
+        else:
+            d = np.concatenate([-x for x in self.b])
         q_arr = []
         for qn, rn in zip(self.q, self.r):
             q_arr += list(qn)
@@ -210,6 +216,7 @@ class QPOCP:
         Returns:
             The new OCP QP with merged stages.
         """
+        assert 0 <= id < self.get_stages_count() - 1
         A = self.A[id]
         B = self.B[id]
         b = self.b[id]
@@ -219,20 +226,26 @@ class QPOCP:
         Q1 = self.Q[id+1]
         R1 = self.R[id+1]
         S1 = self.S[id+1]
-        Q_new = Q0 + A.dot(Q1).dot(A)
+        Q_add = A.T.dot(Q1).dot(A)
+        assert np.allclose(Q_add, Q_add.T) # sanity check
+        Q_add = (Q_add + Q_add.T) * 0.5 # fix symmetry rounding error issues
+        Q_new = Q0 + Q_add
+        R0_add = B.T.dot(Q1).dot(B)
+        assert np.allclose(R0_add, R0_add.T) # sanity check
+        R0_add = (R0_add + R0_add.T) * 0.5 # fix symmetry rounding error issues
         R_new = np.block([
-            [R0 + B.dot(Q1).dot(B), B.dot(S1)],
-            [S1.T.dot(B.T), R1],
+            [R0 + R0_add, S1.dot(B).T],
+            [S1.dot(B), R1],
         ])
-        S_new = np.concatenate([S0 + A.dot(Q1).dot(B), A.dot(S1)])
+        S_new = np.concatenate([S0 + A.T.dot(Q1).dot(B), S1.dot(A)])
         Q_full = self.Q[:id] + [Q_new] + self.Q[id+2:]
         R_full = self.R[:id] + [R_new] +  self.R[id+2:]
         S_full = self.S[:id] + [S_new] + self.S[id+2:]
-        if id + 1 < self.get_stages_count():
+        if id + 2 < self.get_stages_count():
             A1 = self.A[id+1]
             B1 = self.B[id+1]
             A_new = A1.dot(A)
-            B_new = np.concatenate([A1.dot(B), B1], 0)
+            B_new = np.concatenate([A1.dot(B), B1], 1)
             b_new = A1.dot(b) + self.b[id+1]
             A_full = self.A[:id] + [A_new] + self.A[id+2:]
             B_full = self.B[:id] + [B_new] + self.B[id+2:]
@@ -244,14 +257,14 @@ class QPOCP:
         lbu_new = np.concatenate(self.lbu[id:id+2])
         lbu_full = self.lbu[:id] + [lbu_new] + self.lbu[id+2:]
         ubu_new = np.concatenate(self.ubu[id:id+2])
-        ubu_full = self.lbu[:id] + [ubu_new] + self.lbu[id+2:]
-        lbx_full = self.lbx[:id+1] + self.lbx[id+1:]
-        ubx_full = self.ubx[:id+1] + self.ubx[id+1:]
+        ubu_full = self.ubu[:id] + [ubu_new] + self.ubu[id+2:]
+        lbx_full = self.lbx[:id+1] + self.lbx[id+2:]
+        ubx_full = self.ubx[:id+1] + self.ubx[id+2:]
         # self.lbx[id+1] - b_t <= A_tx_t + B_tu_t <= self.ubx[id+1] - b_t
         # -> is added by C and D matrices
-        q_new = self.q[id] + A.dot(self.q[id+1])
+        q_new = self.q[id] + self.q[id+1].T.dot(A).T
         q_full = self.q[:id] + [q_new] + self.q[id+2:]
-        r_new = np.concatenate([self.r[id] + B*self.q[id+1] + b.dot(S1), self.r[id+1]])
+        r_new = np.concatenate([self.r[id] + self.q[id+1].T.dot(B).T, self.r[id+1] + S1.dot(b)])
         r_full = self.r[:id] + [r_new] + self.r[id+2:]
         C_new = np.concatenate([self.C[id], self.C[id+1].dot(A), A], 0)
         C_full = self.C[:id] + [C_new] + self.C[id+2:]

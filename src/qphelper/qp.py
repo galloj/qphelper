@@ -53,6 +53,7 @@ class QP:
             self.ubA = ubA
         else:
             self.ubA = numpy.full((nC,), numpy.inf)
+        assert (self.lbA <= self.ubA).all()
         if lb is not None:
             assert lb.shape == (nV,)
             self.lb = lb
@@ -63,6 +64,7 @@ class QP:
             self.ub = ub
         else:
             self.ub = numpy.full((nV,), numpy.inf)
+        assert (self.lb <= self.ub).all()
         assert (C is None) == (d is None)
         if C is not None and d is not None:
             self.C = C
@@ -90,7 +92,7 @@ class QP:
         Returns:
             The objective of the primal problem.
         """
-        return  float(0.5 * (x.T.dot(self.H).dot(x)) + self.q.T.dot(x))
+        return float(0.5 * (x.T.dot(self.H).dot(x)) + self.q.T.dot(x))
     
     def evaluate_dual(self, x: numpy.ndarray, ybA: Optional[numpy.ndarray] = None, yb: Optional[numpy.ndarray] = None, yD: Optional[numpy.ndarray] = None) -> float:
         """
@@ -410,7 +412,7 @@ class QP:
         Returns:
             A new QP.
         """
-        newA = self.A
+        newA = numpy.zeros((0, self.A.shape[1]))
         newubA = numpy.zeros(0)
         for ubAn, An in zip(self.ubA, self.A):
             if ubAn == numpy.inf:
