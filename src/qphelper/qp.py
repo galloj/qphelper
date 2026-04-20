@@ -497,3 +497,57 @@ class QP:
         ])
         newd = numpy.concatenate([self.d, numpy.zeros(self.get_equalities_count())])
         return QP(newH, newq, None, None, None, newlb, newub, newC, newd)
+    
+    def to_without_equalities(self) -> "QP":
+        r"""
+        Converts QP into QP with equalities transformed into general constraints.
+        This transformation does not alter primal objective function.
+
+        From:
+
+        \[
+        \min \frac{1}{2} x^THx + qx^T
+        \]
+
+        \[
+        \begin{equation}
+        \begin{split}
+        lbA & \leq & Ax & \leq & ubA \\
+        lb  & \leq & x  & \leq & ub \\
+        & & Cx & = & d
+        \end{split}
+        \end{equation}
+        \]
+
+        To:
+
+        \[
+        \min \frac{1}{2} x^THx + qx^T
+        \]
+
+        \[
+        \begin{equation}
+        \begin{split}
+        \begin{bmatrix}
+            lbA \\
+            d
+        \end{bmatrix} & \leq & \begin{bmatrix}
+            A \\
+            C
+        \end{bmatrix}x & \leq & \begin{bmatrix}
+            ubA \\
+            d
+        \end{bmatrix}  \\
+        lb  & \leq & x  & \leq & ub
+        \end{split}
+        \end{equation}
+        \]
+
+
+        Returns:
+            A new QP.
+        """
+        newA = numpy.concatenate([self.A, self.C], 0)
+        newlbA = numpy.concatenate([self.lbA, self.d])
+        newubA = numpy.concatenate([self.ubA, self.d])
+        return QP(self.H, self.q, newA, newlbA, newubA, self.lb, self.ub, None, None)
