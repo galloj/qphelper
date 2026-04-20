@@ -8,7 +8,7 @@ class QP:
     The problems have following form:
 
     \[
-    \min \frac{1}{2} x^THx + qx^T
+    \min \frac{1}{2} x^THx + q^Tx
     \]
 
     \[
@@ -255,7 +255,7 @@ class QP:
         From:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -275,7 +275,7 @@ class QP:
         \]
 
         \[
-        \min \frac{1}{2} x^Tx + qL^{-1}x^T
+        \min \frac{1}{2} x^Tx + q^TL^{-1T}x
         \]
 
         \[
@@ -297,7 +297,7 @@ class QP:
         # v^T = x^T H_tr
         # x^T = v^T H_tr_inv
         # x = H_tr_inv^T v
-        q_new = qp.q.dot(H_tr_inv)
+        q_new = qp.q.T.dot(H_tr_inv.T)
         A_new = qp.A.dot(H_tr_inv.T)
         C_new = qp.C.dot(H_tr_inv.T)
         return (QP(numpy.identity(qp.get_variables_count()), q_new, A_new, qp.lbA, qp.ubA, None, None, C_new, qp.d), H_tr_inv)
@@ -310,7 +310,7 @@ class QP:
         From:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -326,19 +326,21 @@ class QP:
         To:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
         \begin{equation}
         \begin{split}
         \begin{bmatrix}
-            lbA & lb
+            lbA \\
+            lb
         \end{bmatrix} & \leq & \begin{bmatrix}
             A \\
             I
         \end{bmatrix}x & \leq & \begin{bmatrix}
-            ubA & ub
+            ubA \\
+            ub
         \end{bmatrix} \\
         & & Cx & = & d
         \end{split}
@@ -372,7 +374,7 @@ class QP:
         From:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -388,7 +390,7 @@ class QP:
         To:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -398,7 +400,8 @@ class QP:
             A \\
             -A
         \end{bmatrix}x & \leq & \begin{bmatrix}
-            ubA & lbA
+            ubA \\
+            lbA
         \end{bmatrix} \\
         lb  & \leq & x  & \leq & ub \\
         & & Cx & = & d
@@ -433,7 +436,7 @@ class QP:
         From:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -450,7 +453,8 @@ class QP:
 
         \[
         \widetilde{x} = \begin{bmatrix}
-            x & 0
+            x \\
+            0
         \end{bmatrix}
         \]
 
@@ -459,23 +463,27 @@ class QP:
             H & 0 \\
             0 & 0
         \end{bmatrix}\widetilde{x} + \begin{bmatrix}
-            q & 0
-        \end{bmatrix}\widetilde{x}^T
+            q \\
+            0
+        \end{bmatrix}^T\widetilde{x}
         \]
 
         \[
         \begin{equation}
         \begin{split}
         \begin{bmatrix}
-            lb & lbA
+            lb \\
+            lbA
         \end{bmatrix} & \leq & \widetilde{x}  & \leq & \begin{bmatrix}
-            ub & ubA
+            ub \\
+            ubA
         \end{bmatrix} \\
         & & \begin{bmatrix}
-            C & -I \\
-            A & 0
+            C & 0 \\
+            A & -I
         \end{bmatrix}\widetilde{x} & = & \begin{bmatrix}
-            d & 0
+            d \\
+            0
         \end{bmatrix}
         \end{split}
         \end{equation}
@@ -506,7 +514,7 @@ class QP:
         From:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
@@ -522,7 +530,7 @@ class QP:
         To:
 
         \[
-        \min \frac{1}{2} x^THx + qx^T
+        \min \frac{1}{2} x^THx + q^Tx
         \]
 
         \[
