@@ -41,7 +41,7 @@ class QP:
             assert A.shape[1] == nV
             self.A = A
         else:
-            self.A = numpy.zeros((nV, 0))
+            self.A = numpy.zeros((0, nV))
         nC = self.A.shape[0]
         if lbA is not None:
             assert lbA.shape == (nC,)
@@ -70,7 +70,7 @@ class QP:
             self.C = C
             self.d = d
         else:
-            self.C = numpy.zeros((nV, 0))
+            self.C = numpy.zeros((0, nV))
             self.d = numpy.zeros((0,))
 
     def get_equalities_count(self) -> int:
