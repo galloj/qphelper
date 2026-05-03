@@ -266,17 +266,18 @@ class QPOCP:
         q_full = self.q[:id] + [q_new] + self.q[id+2:]
         r_new = np.concatenate([self.r[id] + self.q[id+1].T.dot(B).T, self.r[id+1] + S1.dot(b)])
         r_full = self.r[:id] + [r_new] + self.r[id+2:]
-        C_new = np.concatenate([self.C[id], self.C[id+1].dot(A), A], 0)
+        bx_mask = (self.lbx[id+1] != -np.inf) | (self.ubx[id+1] != np.inf)
+        C_new = np.concatenate([self.C[id], self.C[id+1].dot(A), A[bx_mask]], 0)
         C_full = self.C[:id] + [C_new] + self.C[id+2:]
         D_new = np.block([
             [self.D[id], np.zeros((self.D[id].shape[0], self.D[id+1].shape[1]))],
             [self.C[id+1].dot(B), self.D[id+1]],
-            [B, np.zeros((B.shape[0], self.D[id+1].shape[1]))]
+            [B[bx_mask], np.zeros((B.shape[0], self.D[id+1].shape[1]))[bx_mask]]
         ])
         D_full = self.D[:id] + [D_new] + self.D[id+2:]
-        lg_new = np.concatenate([self.lg[id], self.lg[id+1] - self.C[id+1].dot(b), self.lbx[id+1] - b])
+        lg_new = np.concatenate([self.lg[id], self.lg[id+1] - self.C[id+1].dot(b), (self.lbx[id+1] - b)[bx_mask]])
         lg_full = self.lg[:id] + [lg_new] + self.lg[id+2:]
-        ug_new = np.concatenate([self.ug[id], self.ug[id+1] - self.C[id+1].dot(b), self.ubx[id+1] - b])
+        ug_new = np.concatenate([self.ug[id], self.ug[id+1] - self.C[id+1].dot(b), (self.ubx[id+1] - b)[bx_mask]])
         ug_full = self.ug[:id] + [ug_new] + self.ug[id+2:]
         return QPOCP(Q_full, R_full, S_full, q_full, r_full, A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full, C_full, D_full, lg_full, ug_full)
 
