@@ -262,9 +262,9 @@ class QPOCP:
         ubx_full = self.ubx[:id+1] + self.ubx[id+2:]
         # self.lbx[id+1] - b_t <= A_tx_t + B_tu_t <= self.ubx[id+1] - b_t
         # -> is added by C and D matrices
-        q_new = self.q[id] + self.q[id+1].T.dot(A).T
+        q_new = self.q[id] + self.q[id+1].T.dot(A).T + A.T.dot(Q1).dot(b)
         q_full = self.q[:id] + [q_new] + self.q[id+2:]
-        r_new = np.concatenate([self.r[id] + self.q[id+1].T.dot(B).T, self.r[id+1] + S1.dot(b)])
+        r_new = np.concatenate([self.r[id] + self.q[id+1].T.dot(B).T + B.T.dot(Q1).dot(b), self.r[id+1] + S1.dot(b)])
         r_full = self.r[:id] + [r_new] + self.r[id+2:]
         bx_mask = (self.lbx[id+1] != -np.inf) | (self.ubx[id+1] != np.inf)
         C_new = np.concatenate([self.C[id], self.C[id+1].dot(A), A[bx_mask]], 0)
@@ -280,6 +280,29 @@ class QPOCP:
         ug_new = np.concatenate([self.ug[id], self.ug[id+1] - self.C[id+1].dot(b), (self.ubx[id+1] - b)[bx_mask]])
         ug_full = self.ug[:id] + [ug_new] + self.ug[id+2:]
         return QPOCP(Q_full, R_full, S_full, q_full, r_full, A_full, B_full, b_full, lbu_full, ubu_full, lbx_full, ubx_full, C_full, D_full, lg_full, ug_full)
+
+    def to_without_x0(self) -> "QPOCP":
+        """
+        Removes vector x from the first stage of the problem
+        """
+        assert (self.lbx[0] == self.ubx[0]).all()
+        x0 = self.lbx[0]
+        Q_full = [np.zeros((0, 0))] + self.Q[1:]
+        S_full = [np.zeros((self.R[0].shape[0], 0))] + self.S[1:]
+        q_full = [np.zeros(0)] + self.q[1:]
+        r_full = [self.r[0] + self.S[0].dot(x0)] + self.r[1:]
+        if len(self.A) > 0:
+            A_full = [np.zeros((self.A[0].shape[0], 0))] + self.A[1:]
+            b_full = [self.b[0] + self.A[0].dot(x0)] + self.b[1:]
+        else:
+            A_full = []
+            b_full = []
+        lbx_full = [np.zeros(0)] + self.lbx[1:]
+        ubx_full = [np.zeros(0)] + self.ubx[1:]
+        C_full = [np.zeros((self.C[0].shape[0], 0))] + self.C[1:]
+        lg_full = [self.lg[0] - self.C[0].dot(x0)] + self.lg[1:]
+        ug_full = [self.ug[0] - self.C[0].dot(x0)] + self.ug[1:]
+        return QPOCP(Q_full, self.R, S_full, q_full, r_full, A_full, self.B, b_full, self.lbu, self.ubu, lbx_full, ubx_full, C_full, self.D, lg_full, ug_full)
 
     def to_dense(self) -> QP:
         """
