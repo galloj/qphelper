@@ -81,6 +81,20 @@ class QP:
     
     def get_variables_count(self) -> int:
         return self.H.shape[0]
+    
+    def is_hessian_positive_definite(self) -> bool:
+        """
+        Returns:
+            Whatever the Hessian is positive definite
+        """
+        return bool(numpy.all(numpy.linalg.eigvals(self.H) > 0))
+    
+    def is_hessian_positive_semidefinite(self) -> bool:
+        """
+        Returns:
+            Whatever the Hessian is positive semidefinite
+        """
+        return bool(numpy.all(numpy.linalg.eigvals(self.H) >= 0))
 
     def evaluate_primal(self, x: numpy.ndarray) -> float:
         """
