@@ -127,9 +127,9 @@ class QP:
         if yD is None:
             yD = numpy.zeros((self.get_equalities_count(),))
         result = 0.5 * (x.T.dot(self.H).dot(x))
-        result += (-ybA * self.lbA)[(self.lbA != -numpy.inf) & (ybA < 0)].sum()
+        result += (ybA * self.lbA)[(self.lbA != -numpy.inf) & (ybA < 0)].sum()
         result += (ybA * self.ubA)[(self.ubA != numpy.inf) & (ybA > 0)].sum()
-        result += (-yb * self.lb)[(self.lb != -numpy.inf) & (yb < 0)].sum()
+        result += (yb * self.lb)[(self.lb != -numpy.inf) & (yb < 0)].sum()
         result += (yb * self.ub)[(self.ub != numpy.inf) & (yb > 0)].sum()
         result += (yD * self.d).sum()
         return -float(result)
