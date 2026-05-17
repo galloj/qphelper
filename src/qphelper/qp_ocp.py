@@ -120,19 +120,22 @@ class QPOCP:
 
     def get_stages_count(self) -> int:
         """
-        Get number of stages/horizon length
+        Returns:
+            Number of stages/horizon length
         """
         return len(self.Q)
     
     def get_states_count(self, stage_id: int) -> int:
         """
-        Get number of state variables in a given stage
+        Returns:
+            Number of state variables in a given stage
         """
         return self.Q[stage_id].shape[0]
     
     def get_controls_count(self, stage_id: int) -> int:
         """
-        Get number of control variables in a given stage
+        Returns:
+            Number of control variables in a given stage
         """
         return self.R[stage_id].shape[0]
 
@@ -284,6 +287,9 @@ class QPOCP:
     def to_without_x0(self) -> "QPOCP":
         """
         Removes vector x from the first stage of the problem
+
+        Returns:
+            A new OCP QP wihtout x0
         """
         assert (self.lbx[0] == self.ubx[0]).all()
         x0 = self.lbx[0]
@@ -318,7 +324,7 @@ class QPOCP:
         Transforms the OCP QP problem into new OCP QP problem, which has N stages.
 
         The new optimization variables correspond to:
-        \( [ x_0 u_0 u_1 ... u_t ] \)
+        \( [ x_0 u_0 x_1 u_1 ... x_t u_t ] \)
 
         Returns:
             The condensed OCP QP.
