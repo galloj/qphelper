@@ -240,7 +240,7 @@ class QPOCP:
             [R0 + R0_add, S1.dot(B).T],
             [S1.dot(B), R1],
         ])
-        S_new = np.concatenate([S0 + A.T.dot(Q1).dot(B), S1.dot(A)])
+        S_new = np.concatenate([S0 + B.T.dot(Q1).dot(A), S1.dot(A)])
         Q_full = self.Q[:id] + [Q_new] + self.Q[id+2:]
         R_full = self.R[:id] + [R_new] +  self.R[id+2:]
         S_full = self.S[:id] + [S_new] + self.S[id+2:]
